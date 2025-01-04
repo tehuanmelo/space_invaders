@@ -2,6 +2,7 @@
 
 A modern Python implementation of the classic arcade game **Space Invaders**, built using the **Pygame** library. Dodge enemy lasers, shoot down enemy ships, and progress through increasingly difficult levels in this engaging space-themed shooter game.
 
+![Alt Text](assets/demo-video.gif)
 
 ## Features
 
