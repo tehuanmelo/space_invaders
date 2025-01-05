@@ -16,7 +16,7 @@ FPS = 60
 FONT = pygame.font.Font(join("assets/fonts", "chopsic.otf"), 30)
 
 # Player settings
-LIVES = 3
+LIVES = 1
 PLAYER_SPEED = 400
 
 # Imports
@@ -36,6 +36,23 @@ LASER_4  = pygame.image.load(join("assets/images", "laser_cian.png")).convert_al
 
 EXPLOSION = [pygame.image.load(join("assets/images/explosion", f"{i}.png")).convert_alpha() for i in range(21)]
 
+# Sound Effects
+GAME_MUSIC = pygame.mixer.Sound(join("assets/audio/", "game_music.mp3"))
+PLAYER_LASER_SFX = pygame.mixer.Sound(join("assets/audio/", "player_laser.wav"))
+PLAYER_HIT_SFX = pygame.mixer.Sound(join("assets/audio/", "player_hit.wav"))
+PLAYER_DEATH_SFX = pygame.mixer.Sound(join("assets/audio/", "player_death.mp3"))
+ENEMY_DEATH_SFX = pygame.mixer.Sound(join("assets/audio/", "enemy_death.wav"))
+ENEMY_LASER_SFX = pygame.mixer.Sound(join("assets/audio/", "enemy_laser.wav"))
+LEVEL_UP = pygame.mixer.Sound(join("assets/audio/", "level_up.mp3"))
+
+GAME_MUSIC.set_volume(0.1)
+PLAYER_LASER_SFX.set_volume(0.05)
+ENEMY_LASER_SFX.set_volume(0.1)
+ENEMY_DEATH_SFX.set_volume(0.3)
+PLAYER_HIT_SFX.set_volume(0.3)
+
+
+
 
 class Ship(pygame.sprite.Sprite):
     def __init__(self, image, pos, speed, *groups):
@@ -52,7 +69,7 @@ class Player(Ship):
     def __init__(self, image, laser_image, pos, speed, *groups):
         super().__init__(image, pos, speed, groups[0])
         self.lives = LIVES
-        self.level = 0
+        self.level = 1
         self.score = 0
         self.lost = False
         self.groups = groups
@@ -78,6 +95,7 @@ class Player(Ship):
     def shoot_laser(self):
         keys = pygame.key.get_just_pressed()
         if int(keys[pygame.K_SPACE]) and self.can_shoot_laser:
+            PLAYER_LASER_SFX.play()
             self.can_shoot_laser = False
             self.last_shot = pygame.time.get_ticks()
             Laser(self.laser_image, self.rect.midtop, self.laser_speed, -1, self.groups)
@@ -133,6 +151,7 @@ class Enemy(Ship):
         
         # Shoot laser
         if self.laser_can_shoot:
+            ENEMY_LASER_SFX.play()
             Laser(self.laser_image, self.rect.midbottom, self.laser_speed, 1, self.laser_groups)
             self.laser_creation_time = pygame.time.get_ticks()
             self.laser_can_shoot = False
@@ -189,9 +208,11 @@ def colision(player, all_sprites, all_enemies, all_player_lasers, all_enemies_sh
     player_colision = pygame.sprite.spritecollide(player, all_enemies, True, pygame.sprite.collide_mask)
     if player_colision:
         for enemy in player_colision:
+            PLAYER_HIT_SFX.play()
             Explosion(EXPLOSION, enemy.rect.center, all_sprites)
             player.health -= 1
             if player.health <= 0:
+                PLAYER_DEATH_SFX.play()
                 player.lives -= 1
                 if player.lives <= 0:
                     player.lost = True
@@ -202,6 +223,7 @@ def colision(player, all_sprites, all_enemies, all_player_lasers, all_enemies_sh
     laser_collision = pygame.sprite.groupcollide(all_player_lasers, all_enemies_ships, True, True, pygame.sprite.collide_mask)
     if laser_collision:
         for laser in laser_collision:
+            ENEMY_DEATH_SFX.play()
             Explosion(EXPLOSION, laser.rect.center, all_sprites)
         player.score += 1
 
@@ -211,10 +233,12 @@ def game():
     clock = pygame.time.Clock()
  
     lost = False
+    enemy_speed = 50
     enemy_speed_increment = 50
-    enemy_creation_decrement = 2050
+    enemy_creation_decrement = 2000
     enemy_create_event = pygame.event.custom_type()
-    last_score_check = None
+    last_score_check = 0
+    pygame.time.set_timer(enemy_create_event, 2000)
     
     all_sprites = pygame.sprite.Group()
     all_enemies = pygame.sprite.Group()
@@ -227,21 +251,14 @@ def game():
     while run:
         dt = clock.tick(FPS) / 1000
         
-        if lost:
-            if lost_count > FPS * 3:
-                run = False
-            else:
-                lost_count += 1
-                continue
-        
         if player.score % 10 == 0 and player.score != last_score_check:
+            LEVEL_UP.play()
             player.level += 1
             enemy_creation_decrement -= 100
             enemy_speed_increment += 20
             enemy_speed = random.randint(50, enemy_speed_increment)
             enemy_creation_speed = max(200, enemy_creation_decrement)
             
-            print(enemy_creation_speed)
             last_score_check = player.score
             pygame.time.set_timer(enemy_create_event, enemy_creation_speed)
             
@@ -271,7 +288,8 @@ def game():
             lost_label = FONT.render("You Lost!", True, "white")
             WIN.blit(lost_label, (WINDOW_WIDTH/2-lost_label.get_width()/2, WINDOW_HEIGHT/2))
             pygame.display.update()
-            pygame.time.delay(2000)
+            pygame.time.delay(4000)
+            pygame.event.clear()
             return
         
         pygame.display.update()
@@ -284,6 +302,7 @@ def main():
     exit_label = FONT.render(f'Press "ESC" to exit', True, "white")
     start_label_rect = start_label.get_rect(center=(WINDOW_WIDTH/2,WINDOW_HEIGHT/2))
     exit_label_rect = exit_label.get_rect(center=(WINDOW_WIDTH/2,WINDOW_HEIGHT/2 + 50))
+    GAME_MUSIC.play(loops=-1)
     while run:
         WIN.blit(BACKGROUND, (0,0)) 
         WIN.blit(start_label, start_label_rect)

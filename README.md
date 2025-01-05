@@ -20,6 +20,7 @@ A modern Python implementation of the classic arcade game **Space Invaders**, bu
   - Explosions and animations for visual feedback.
   - Level progression with increasing challenge.
   - Customizable game elements like speed and spawn rate.
+  - **Sound Effects**: Engaging sound effects for shooting, explosions, and level progression.
 
 - **User Interface**:
   - Scoreboard displaying lives, levels, and score.
